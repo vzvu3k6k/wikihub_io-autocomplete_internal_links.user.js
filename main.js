@@ -27,23 +27,18 @@ require('jquery-textcomplete')
 let _sourceCache, _sourceDirectCache
 function fetchSourcesFromTopPage (rootURL) {
   return _sourceCache || (_sourceCache = new Promise((resolve, reject) => {
-    let xhr = new XMLHttpRequest()
-    xhr.open('GET', rootURL)
-    xhr.onload = function () {
-      if (xhr.status !== 200) return
+    jQuery.ajax({
+      url: `${rootURL}articles.atom`,
+      dataType: 'xml'
+    }).then((doc) => {
       let sources = Object.create(null)
-      let links = xhr.responseXML.querySelectorAll('a.list-group-item.media[href]')
-      for (let link of links) {
-        if (link.host === rootURL.host &&
-            (link.pathname.startsWith('/wiki/') || link.pathname.startsWith('/@'))) {
-          let title = link.querySelector('.lgi-heading').textContent.trim()
-          sources[title] = link.href
-        }
-      }
-      resolve(_sourceDirectCache = sources)
-    }
-    xhr.responseType = 'document'
-    xhr.send()
+      Array.from(doc.querySelectorAll('feed > entry'), (entry) => {
+        let title = entry.querySelector('title').textContent.trim()
+        let url = entry.querySelector('link[rel="alternate"][type="text/html"]').getAttribute('href')
+        sources[title] = url
+      })
+      return _sourceDirectCache = sources
+    }).then(resolve, reject)
   }))
 }
 
