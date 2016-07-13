@@ -78,7 +78,10 @@ jQuery('textarea').textcomplete([{
     term = term.toLowerCase()
     fetchSources(new URL(`https://${location.hostname}/`))
       .then((sources) => {
-        callback(sources.filter((source) => source.title.toLowerCase().includes(term)))
+        callback(sources.filter((source) => {
+          return source.title.toLowerCase().includes(term) ||
+            source.author.toLowerCase().includes(term)
+        }))
       })
   },
   template: (source) => {
