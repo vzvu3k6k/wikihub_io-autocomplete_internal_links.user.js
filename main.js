@@ -14,7 +14,7 @@
 let style = document.createElement('style')
 style.textContent = `
 /* textcomplete関連のスタイルはWikiHub側で指定されている */
-.textcomplete-dropdown {
+.dropdown-menu.textcomplete-dropdown.ujs-autocomplete-internal-links {
   /* インラインスタイルによってheightが大きく設定されるのを雑に抑制 */
   height: auto !important;
 }
@@ -60,4 +60,6 @@ jQuery('textarea').textcomplete([{
   replace: (title) => {
     return `[${title}](${_sourceDirectCache[title]})`
   }
-}])
+}], {
+  dropdownClassName: 'dropdown-menu textcomplete-dropdown ujs-autocomplete-internal-links'
+})
