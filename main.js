@@ -52,7 +52,7 @@ let jQuery = require('jquery')
 require('jquery-textcomplete')
 
 let _sourceCache
-function fetchSourcesFromTopPage (rootURL) {
+function fetchSources (rootURL) {
   return _sourceCache || (_sourceCache = new Promise((resolve, reject) => {
     jQuery.ajax({
       url: `${rootURL}articles.atom`,
@@ -75,7 +75,7 @@ jQuery('textarea').textcomplete([{
   match: /\[(\w{2,})$/,
   index: 1,
   search: (term, callback) => {
-    fetchSourcesFromTopPage(new URL(`https://${location.hostname}/`))
+    fetchSources(new URL(`https://${location.hostname}/`))
       .then((sources) => {
         callback(sources.filter((source) => source.title.includes(term)))
       })
