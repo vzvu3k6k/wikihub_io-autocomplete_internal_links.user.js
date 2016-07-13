@@ -75,9 +75,10 @@ jQuery('textarea').textcomplete([{
   match: /\[(\w{2,})$/,
   index: 1,
   search: (term, callback) => {
+    term = term.toLowerCase()
     fetchSources(new URL(`https://${location.hostname}/`))
       .then((sources) => {
-        callback(sources.filter((source) => source.title.includes(term)))
+        callback(sources.filter((source) => source.title.toLowerCase().includes(term)))
       })
   },
   template: (source) => {
