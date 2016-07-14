@@ -51,23 +51,56 @@ document.head.appendChild(style)
 let jQuery = require('jquery')
 require('jquery-textcomplete')
 
+function entryToSource (entry) {
+  return {
+    author: entry.querySelector('author > name').textContent.trim(),
+    title: entry.querySelector('title').textContent.trim(),
+    publishedAt: new Date(Date.parse(entry.querySelector('published').textContent.trim())),
+    updatedAt: new Date(Date.parse(entry.querySelector('updated').textContent.trim())),
+    url: entry.querySelector('link[rel="alternate"][type="text/html"]').getAttribute('href')
+  }
+}
+
 let _sourceCache
 function fetchSources (rootURL) {
   return _sourceCache || (_sourceCache = new Promise((resolve, reject) => {
+    let sources = []
     jQuery.ajax({
       url: `${rootURL}articles.atom`,
       dataType: 'xml'
     }).then((doc) => {
-      return Array.from(doc.querySelectorAll('feed > entry'), (entry) => {
-        return {
-          author: entry.querySelector('author > name').textContent.trim(),
-          thumbnail: entry.querySelector('thumbnail').getAttribute('url'),
-          title: entry.querySelector('title').textContent.trim(),
-          publishedAt: Date.parse(entry.querySelector('published').textContent.trim()),
-          url: entry.querySelector('link[rel="alternate"][type="text/html"]').getAttribute('href')
+      Array.from(doc.querySelectorAll('feed > entry'), (entry) => {
+        let source = entryToSource(entry)
+        source.type = 'article'
+        source.thumbnail = entry.querySelector('thumbnail').getAttribute('url')
+        sources.push(source)
+      })
+    }).fail((error) => {
+      if (error.status === 404) {
+        return Promise.resolve()
+      } else {
+        return Promise.reject(error)
+      }
+    }).then(() => {
+      return jQuery.ajax({
+        url: `${rootURL}wiki.atom`,
+        dataType: 'xml'
+      })
+    }).then((doc) => {
+      Array.from(doc.querySelectorAll('feed > entry'), (entry) => {
+        let source = entryToSource(entry)
+        source.type = 'page'
+        sources.push(source)
+      })
+    }).then(
+      () => resolve(sources),
+      (err) => {
+        if (sources.length > 0) {
+          resolve(sources)
+        } else {
+          reject(err)
         }
       })
-    }).then(resolve, reject)
   }))
 }
 
@@ -85,7 +118,9 @@ jQuery('textarea').textcomplete([{
       })
   },
   template: (source) => {
-    return HTMLtemplate`
+    switch (source.type) {
+    case 'article':
+      return HTMLtemplate`
 <span class="list-group-item media">
   <div class="pull-left">
     <img class="avatar-img" title="@${source.author}" src="${source.thumbnail}" width="40" height="40">
@@ -95,6 +130,20 @@ jQuery('textarea').textcomplete([{
     <div class="lgi-text">Created on ${ymdDate(source.publishedAt)} by ${source.author}</div>
   </div>
 </span>`
+    case 'page':
+      return HTMLtemplate`
+<span class="list-group-item media">
+  <div class="pull-left">
+    <div class="avatar-char palette-Grey-500 bg">
+      <i class="fa fa-sitemap"></i>
+    </div>
+  </div>
+  <div class="media-body">
+    <div class="lgi-heading">${source.title}</div>
+    <div class="lgi-text">Updated on ${ymdDate(source.updatedAt)}</div>
+  </div>
+</span>`
+    }
   },
   replace: (source) => {
     return `[${source.title}](${source.url})`
