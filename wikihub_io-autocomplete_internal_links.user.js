@@ -125,6 +125,9 @@ jQuery('.js-autocompletion').atwho({
               (source.type === 'article' && normalize(source.author).includes(query))
           }))
         })
+        .catch((err) => {
+          console.error(formatErrorMessage(err))
+        })
     },
   },
   displayTpl: function (candidate) {
