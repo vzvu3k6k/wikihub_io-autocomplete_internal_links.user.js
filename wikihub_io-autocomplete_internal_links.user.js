@@ -11,6 +11,10 @@
 
 // Thanks to https://nippo.wikihub.io/@yuta25/20160701125959
 
+function formatErrorMessage (err) {
+  return `wikihub.io: Autocomplete internal links: ${err}`
+}
+
 function escapeHTML (string) {
   return string.toString().replace('&', '&amp;')
     .replace('<', '&lt;')
@@ -57,39 +61,47 @@ function entryToSource (entry) {
 
 let _sourceCache
 function fetchSources (rootURL) {
-  return _sourceCache || (_sourceCache = new Promise((resolve, reject) => {
-    let sources = []
-    jQuery.ajax({ url: `${rootURL}articles.atom` }).then((doc) => {
-      Array.from(doc.querySelectorAll('feed > entry'), (entry) => {
-        let source = entryToSource(entry)
+  if (_sourceCache) return _sourceCache
+
+  let sources = []
+  let handlers = [
+    {
+      url: `${rootURL}articles.atom`,
+      addAttrs: (source, entry) => {
         source.type = 'article'
         source.thumbnail = entry.querySelector('thumbnail').getAttribute('url')
-        sources.push(source)
+      },
+    },
+    {
+      url: `${rootURL}wiki.atom`,
+      addAttrs: (source) => {
+        source.type = 'page'
+      }
+    }
+  ]
+  let promise = handlers.reduce((promise, { url, addAttrs }) => {
+    return promise.then(() => {
+      return jQuery.ajax({ url, dataType: 'xml' }).then((doc) => {
+        Array.from(doc.querySelectorAll('feed > entry'), (entry) => {
+          let source = entryToSource(entry)
+          addAttrs(source, entry)
+          sources.push(source)
+        })
       })
-    }).fail((error) => {
+    }).catch((error) => {
       if (error.status === 404) {
         return Promise.resolve()
       } else {
         return Promise.reject(error)
       }
-    }).then(() => {
-      return jQuery.ajax({ url: `${rootURL}wiki.atom` })
-    }).then((doc) => {
-      Array.from(doc.querySelectorAll('feed > entry'), (entry) => {
-        let source = entryToSource(entry)
-        source.type = 'page'
-        sources.push(source)
-      })
-    }).then(
-      () => resolve(sources),
-      (err) => {
-        if (sources.length > 0) {
-          resolve(sources)
-        } else {
-          reject(err)
-        }
-      })
-  }))
+    })
+  }, Promise.resolve())
+  return _sourceCache = promise.then(
+    () => sources,
+    (err) => {
+      console.error(formatErrorMessage(err))
+      return Promise.resolve(sources)
+    })
 }
 
 jQuery('.js-autocompletion').atwho({
