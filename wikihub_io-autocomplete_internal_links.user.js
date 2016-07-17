@@ -15,22 +15,23 @@ function formatErrorMessage (err) {
   return `wikihub.io: Autocomplete internal links: ${err}`
 }
 
-function escapeHTML (string) {
-  return string.toString().replace('&', '&amp;')
-    .replace('<', '&lt;')
-    .replace('>', '&gt;')
-    .replace('"', '&quot;')
-    .replace("'", '&#39;')
-}
-
-function HTMLtemplate (strings, ...values) {
-  return strings[0] + strings.slice(1).map((str, index) => {
-    return escapeHTML(values[index]) + str
-  }).join('')
-}
-
-function ymdDate (date) {
-  return `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
+let templateUtil = {
+  buildHTML: (strings, ...values) => {
+    return strings[0] + strings.slice(1).map((str, index) => {
+      return templateUtil.escapeHTML(values[index]) + str
+    }).join('')
+  },
+  escapeHTML: (string) => {
+    return string.toString()
+      .replace('&', '&amp;')
+      .replace('<', '&lt;')
+      .replace('>', '&gt;')
+      .replace('"', '&quot;')
+      .replace("'", '&#39;')
+  },
+  ymdDate: (date) => {
+    return `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
+  }
 }
 
 let style = document.createElement('style')
@@ -133,18 +134,18 @@ jQuery('.js-autocompletion').atwho({
   displayTpl: function (candidate) {
     switch (candidate.type) {
     case 'article':
-      return HTMLtemplate`
+      return templateUtil.buildHTML`
 <li class="list-group-item media">
   <div class="pull-left">
     <img class="avatar-img" title="@${candidate.author}" src="${candidate.thumbnail}" width="40" height="40">
   </div>
   <div class="media-body">
     <div class="lgi-heading">${candidate.title}</div>
-    <div class="lgi-text">Created on ${ymdDate(candidate.publishedAt)} by ${candidate.author}</div>
+    <div class="lgi-text">Created on ${templateUtil.ymdDate(candidate.publishedAt)} by ${candidate.author}</div>
   </div>
 </li>`
     case 'page':
-      return HTMLtemplate`
+      return templateUtil.buildHTML`
 <li class="list-group-item media">
   <div class="pull-left">
     <div class="avatar-char palette-Grey-500 bg">
@@ -153,7 +154,7 @@ jQuery('.js-autocompletion').atwho({
   </div>
   <div class="media-body">
     <div class="lgi-heading">${candidate.title}</div>
-    <div class="lgi-text">Updated on ${ymdDate(candidate.updatedAt)}</div>
+    <div class="lgi-text">Updated on ${templateUtil.ymdDate(candidate.updatedAt)}</div>
   </div>
 </li>`
     }
