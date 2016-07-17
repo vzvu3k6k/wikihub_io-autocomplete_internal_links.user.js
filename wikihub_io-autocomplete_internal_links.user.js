@@ -31,25 +31,19 @@ function ymdDate (date) {
 
 let style = document.createElement('style')
 style.textContent = `
-/* textcomplete関連のスタイルはWikiHub側で指定されている */
-
-.ujs-autocomplete-internal-links.dropdown-menu.textcomplete-dropdown {
-  /* インラインスタイルによってheightが大きく設定されるのを雑に抑制 */
-  height: auto !important;
+#at-view-ujs-autocomplete-internal-links.atwho-view .cur {
+  background-color: #f5f5f5;
 }
 
-.ujs-autocomplete-internal-links.dropdown-menu .list-group-item {
+#at-view-ujs-autocomplete-internal-links .list-group-item {
   border: none;
 }
 
-.ujs-autocomplete-internal-links.dropdown-menu > li > a {
+#at-view-ujs-autocomplete-internal-links .list-group-item > a {
   padding: 0;
 }
 `
 document.head.appendChild(style)
-
-let jQuery = require('jquery')
-require('jquery-textcomplete')
 
 function entryToSource (entry) {
   return {
@@ -65,10 +59,7 @@ let _sourceCache
 function fetchSources (rootURL) {
   return _sourceCache || (_sourceCache = new Promise((resolve, reject) => {
     let sources = []
-    jQuery.ajax({
-      url: `${rootURL}articles.atom`,
-      dataType: 'xml'
-    }).then((doc) => {
+    jQuery.ajax({ url: `${rootURL}articles.atom` }).then((doc) => {
       Array.from(doc.querySelectorAll('feed > entry'), (entry) => {
         let source = entryToSource(entry)
         source.type = 'article'
@@ -82,10 +73,7 @@ function fetchSources (rootURL) {
         return Promise.reject(error)
       }
     }).then(() => {
-      return jQuery.ajax({
-        url: `${rootURL}wiki.atom`,
-        dataType: 'xml'
-      })
+      return jQuery.ajax({ url: `${rootURL}wiki.atom` })
     }).then((doc) => {
       Array.from(doc.querySelectorAll('feed > entry'), (entry) => {
         let source = entryToSource(entry)
@@ -104,50 +92,58 @@ function fetchSources (rootURL) {
   }))
 }
 
-jQuery('textarea').textcomplete([{
-  match: /\[(.{2,})$/,
-  index: 1,
-  search: (term, callback) => {
-    term = term.toLowerCase()
-    fetchSources(new URL(`https://${location.hostname}/`))
-      .then((sources) => {
-        callback(sources.filter((source) => {
-          return source.title.toLowerCase().includes(term) ||
-            source.author.toLowerCase().includes(term)
-        }))
-      })
+jQuery('.js-autocompletion').atwho({
+  at: '[',
+  alias: 'ujs-autocomplete-internal-links',
+  callbacks: {
+    remoteFilter: (query, callback) => {
+      if (query.length === 0) {
+        callback([])
+        return
+      }
+      function normalize (str) {
+        return str.trim().toLowerCase()
+      }
+      query = normalize(query)
+      fetchSources(new URL(`https://${location.hostname}/`))
+        .then((sources) => {
+          sources.forEach((source) => source.name = query)
+          callback(sources.filter((source) => {
+            return normalize(source.title).includes(query) ||
+              (source.type === 'article' && normalize(source.author).includes(query))
+          }))
+        })
+    },
   },
-  template: (source) => {
-    switch (source.type) {
+  displayTpl: function (candidate) {
+    switch (candidate.type) {
     case 'article':
       return HTMLtemplate`
-<span class="list-group-item media">
+<li class="list-group-item media">
   <div class="pull-left">
-    <img class="avatar-img" title="@${source.author}" src="${source.thumbnail}" width="40" height="40">
+    <img class="avatar-img" title="@${candidate.author}" src="${candidate.thumbnail}" width="40" height="40">
   </div>
   <div class="media-body">
-    <div class="lgi-heading">${source.title}</div>
-    <div class="lgi-text">Created on ${ymdDate(source.publishedAt)} by ${source.author}</div>
+    <div class="lgi-heading">${candidate.title}</div>
+    <div class="lgi-text">Created on ${ymdDate(candidate.publishedAt)} by ${candidate.author}</div>
   </div>
-</span>`
+</li>`
     case 'page':
       return HTMLtemplate`
-<span class="list-group-item media">
+<li class="list-group-item media">
   <div class="pull-left">
     <div class="avatar-char palette-Grey-500 bg">
       <i class="fa fa-sitemap"></i>
     </div>
   </div>
   <div class="media-body">
-    <div class="lgi-heading">${source.title}</div>
-    <div class="lgi-text">Updated on ${ymdDate(source.updatedAt)}</div>
+    <div class="lgi-heading">${candidate.title}</div>
+    <div class="lgi-text">Updated on ${ymdDate(candidate.updatedAt)}</div>
   </div>
-</span>`
+</li>`
     }
   },
-  replace: (source) => {
-    return `[${source.title}](${source.url})`
+  insertTpl: function (candidate) {
+    return `[${candidate.title}](${candidate.url})`
   }
-}], {
-  dropdownClassName: 'dropdown-menu textcomplete-dropdown ujs-autocomplete-internal-links'
 })
