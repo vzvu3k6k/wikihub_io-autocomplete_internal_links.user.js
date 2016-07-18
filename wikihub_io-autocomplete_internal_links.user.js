@@ -54,8 +54,8 @@ function entryToSource (entry) {
   return {
     author: entry.querySelector('author > name').textContent.trim(),
     title: entry.querySelector('title').textContent.trim(),
-    publishedAt: new Date(Date.parse(entry.querySelector('published').textContent.trim())),
-    updatedAt: new Date(Date.parse(entry.querySelector('updated').textContent.trim())),
+    publishedAt: new Date(entry.querySelector('published').textContent.trim()),
+    updatedAt: new Date(entry.querySelector('updated').textContent.trim()),
     url: entry.querySelector('link[rel="alternate"][type="text/html"]').getAttribute('href')
   }
 }
