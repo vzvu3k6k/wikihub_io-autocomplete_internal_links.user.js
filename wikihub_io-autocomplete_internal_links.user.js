@@ -11,8 +11,10 @@
 
 // Thanks to https://nippo.wikihub.io/@yuta25/20160701125959
 
+let prefix = `wikihub.io: Autocomplete internal links: `
+
 function formatErrorMessage (err) {
-  return `wikihub.io: Autocomplete internal links: ${err}`
+  return `${prefix}${err}`
 }
 
 let templateUtil = {
@@ -60,9 +62,25 @@ function entryToSource (entry) {
   }
 }
 
-let _sourceCache
+let sourceCache = {
+  load: () => {
+    let json = localStorage.getItem(`${prefix}sources`)
+    if (!json) return null
+    let sources = JSON.parse(json)
+    for (source of sources) {
+      source.publishedAt = new Date(source.publishedAt)
+      source.updatedAt = new Date(source.publishedAt)
+    }
+    return sources
+  },
+  save: (sources) => localStorage.setItem(`${prefix}sources`, JSON.stringify(sources)),
+}
+
 function fetchSources (rootURL) {
-  if (_sourceCache) return _sourceCache
+  let cache = sourceCache.load()
+  if (cache) {
+    return Promise.resolve(cache)
+  }
 
   let sources = []
   let handlers = [
@@ -97,8 +115,11 @@ function fetchSources (rootURL) {
       }
     })
   }, Promise.resolve())
-  return _sourceCache = promise.then(
-    () => sources,
+  return promise.then(
+    () => {
+      sourceCache.save(sources)
+      return sources
+    },
     (err) => {
       console.error(formatErrorMessage(err))
       return Promise.resolve(sources)
