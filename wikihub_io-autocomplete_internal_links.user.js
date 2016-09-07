@@ -11,7 +11,7 @@
 
 // Thanks to https://nippo.wikihub.io/@yuta25/20160701125959
 
-let prefix = `wikihub.io: Autocomplete internal links: `
+let prefix = 'wikihub.io: Autocomplete internal links: '
 
 function formatErrorMessage (err) {
   return `${prefix}${err}`
@@ -67,13 +67,13 @@ let sourceCache = {
     let json = localStorage.getItem(`${prefix}sources`)
     if (!json) return null
     let sources = JSON.parse(json)
-    for (source of sources) {
+    for (let source of sources) {
       source.publishedAt = new Date(source.publishedAt)
       source.updatedAt = new Date(source.publishedAt)
     }
     return sources
   },
-  save: (sources) => localStorage.setItem(`${prefix}sources`, JSON.stringify(sources)),
+  save: (sources) => localStorage.setItem(`${prefix}sources`, JSON.stringify(sources))
 }
 
 function fetchSources (rootURL) {
@@ -89,7 +89,7 @@ function fetchSources (rootURL) {
       addAttrs: (source, entry) => {
         source.type = 'article'
         source.thumbnail = entry.querySelector('thumbnail').getAttribute('url')
-      },
+      }
     },
     {
       url: `${rootURL}wiki.atom`,
@@ -141,7 +141,7 @@ jQuery('.js-autocompletion').atwho({
       query = normalize(query)
       fetchSources(new URL(`https://${location.hostname}/`))
         .then((sources) => {
-          sources.forEach((source) => source.name = query)
+          sources.forEach((source) => { source.name = query })
           callback(sources.filter((source) => {
             return normalize(source.title).includes(query) ||
               (source.type === 'article' && normalize(source.author).includes(query))
@@ -150,12 +150,12 @@ jQuery('.js-autocompletion').atwho({
         .catch((err) => {
           console.error(formatErrorMessage(err))
         })
-    },
+    }
   },
   displayTpl: function (candidate) {
     switch (candidate.type) {
-    case 'article':
-      return templateUtil.buildHTML`
+      case 'article':
+        return templateUtil.buildHTML`
 <li class="list-group-item media">
   <div class="pull-left">
     <img class="avatar-img" title="@${candidate.author}" src="${candidate.thumbnail}" width="40" height="40">
@@ -165,8 +165,8 @@ jQuery('.js-autocompletion').atwho({
     <div class="lgi-text">Created on ${templateUtil.ymdDate(candidate.publishedAt)} by ${candidate.author}</div>
   </div>
 </li>`
-    case 'page':
-      return templateUtil.buildHTML`
+      case 'page':
+        return templateUtil.buildHTML`
 <li class="list-group-item media">
   <div class="pull-left">
     <div class="avatar-char palette-Grey-500 bg">
