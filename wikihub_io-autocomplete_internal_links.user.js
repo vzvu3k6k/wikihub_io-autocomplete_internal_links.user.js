@@ -25,11 +25,11 @@ let templateUtil = {
   },
   escapeHTML: (string) => {
     return string.toString()
-      .replace('&', '&amp;')
-      .replace('<', '&lt;')
-      .replace('>', '&gt;')
-      .replace('"', '&quot;')
-      .replace("'", '&#39;')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
   },
   ymdDate: (date) => {
     return `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
